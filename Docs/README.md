@@ -10,7 +10,9 @@ Each process needs its own configuration directory. Ape opens one profile lock f
 | --- | --- |
 | `Config/author/author.json` | Peer on port `19160`. Authors the three markers every 5 seconds. |
 | `Config/joiner/joiner.json` | Peer on port `19161`. Dials the author and only receives the scene. |
-| `Module` | Marker entity and the service the host loads before the network starts. |
+| `SceneEntities` | The replicated marker and its scene key. |
+| `Services` | Loads with the module, before the network starts, and bumps the markers on the author. |
+| `Common` | Reads the module section from the host JSON. |
 | `Tests` | Grows a localhost mesh through 2, 3, 4, and 8 peers. |
 
 A new peer dials every peer that is already running, so the links are a mesh rather than a single chain. Replication reaches the peers the author is connected to directly.

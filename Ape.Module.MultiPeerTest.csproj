@@ -7,12 +7,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
-    <AssemblyName>Ape.Module.MultiPeerTest</AssemblyName>
     <RootNamespace>Ape.Module.MultiPeerTest</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Ape.Core\Ape.Core.csproj">
+    <ProjectReference Include="..\..\Ape.Core\Ape.Core.csproj">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>
@@ -20,6 +19,12 @@
 
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="3.1.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Program.cs" />
+    <Compile Remove="Tests/**" />
+    <None Remove="Tests/**" />
   </ItemGroup>
 
 </Project>

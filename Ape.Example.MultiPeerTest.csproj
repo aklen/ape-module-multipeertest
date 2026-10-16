@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Ape.Core\Ape.Core.csproj" />
-    <ProjectReference Include="Module\Ape.Module.MultiPeerTest.csproj" />
+    <ProjectReference Include="Ape.Module.MultiPeerTest.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,9 +20,13 @@
 
   <ItemGroup>
     <Compile Remove="Tests/**" />
-    <Compile Remove="Module/**" />
+    <Compile Remove="Services/**" />
+    <Compile Remove="SceneEntities/**" />
+    <Compile Remove="Common/**" />
     <None Remove="Tests/**" />
-    <None Remove="Module/**" />
+    <None Remove="Services/**" />
+    <None Remove="SceneEntities/**" />
+    <None Remove="Common/**" />
   </ItemGroup>
 
 </Project>

@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ape.Example.MultiPeerTest.csproj" />
-    <ProjectReference Include="..\Module\Ape.Module.MultiPeerTest.csproj" />
+    <ProjectReference Include="..\Ape.Module.MultiPeerTest.csproj" />
   </ItemGroup>
 
   <ItemGroup>
