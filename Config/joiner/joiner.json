@@ -1,0 +1,27 @@
+{
+  "modules": {
+    "Ape.Core.Logging": {
+      "enabled": true,
+      "level": "info",
+      "transport": "console"
+    },
+    "Ape.Core.Network": {
+      "enabled": true,
+      "transport": "quic",
+      "role": "peer",
+      "peerName": "joiner",
+      "port": 19161,
+      "keepAliveSeconds": 15,
+      "reconnect": { "initialSeconds": 1, "maxSeconds": 8 },
+      "peers": [
+        { "host": "localhost", "port": 19160 }
+      ]
+    },
+    "Ape.Core.Scene": {
+      "logCommits": true
+    },
+    "Ape.Module.MultiPeerTest": {
+      "author": false
+    }
+  }
+}
