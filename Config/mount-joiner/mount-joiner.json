@@ -1,0 +1,48 @@
+{
+  "modules": {
+    "Ape.Core.Logging": {
+      "enabled": true,
+      "level": "info",
+      "transport": "console"
+    },
+    "Ape.Core.Network": {
+      "enabled": true,
+      "transport": "quic",
+      "role": "peer",
+      "peerName": "mount-joiner",
+      "port": 19171,
+      "keepAliveSeconds": 15,
+      "reconnect": { "initialSeconds": 1, "maxSeconds": 8 },
+      "peers": [
+        { "host": "127.0.0.1", "port": 19170 }
+      ]
+    },
+    "Ape.Core.Replica": {
+      "subscription": {
+        "mounts": [
+          {
+            "sourcePeer": "*",
+            "sourcePath": "markers/lamp",
+            "destinationPath": "/self/shared/lamp"
+          },
+          {
+            "sourcePeer": "*",
+            "sourcePath": "markers/crate",
+            "destinationPath": "/self/inbox/crate"
+          },
+          {
+            "sourcePeer": "*",
+            "sourcePath": "markers/orb",
+            "destinationPath": "/self/shared/orb"
+          }
+        ]
+      }
+    },
+    "Ape.Core.Scene": {
+      "logCommits": true
+    },
+    "Ape.Module.MultiPeerTest": {
+      "author": false
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "modules": {
+    "Ape.Core.Logging": {
+      "enabled": true,
+      "level": "info",
+      "transport": "console"
+    },
+    "Ape.Core.Network": {
+      "enabled": true,
+      "transport": "quic",
+      "role": "peer",
+      "peerName": "publish-author",
+      "port": 19170,
+      "keepAliveSeconds": 15,
+      "reconnect": { "initialSeconds": 1, "maxSeconds": 8 }
+    },
+    "Ape.Core.Replica": {
+      "publication": {
+        "paths": ["markers/lamp", "markers/crate"]
+      }
+    },
+    "Ape.Core.Scene": {
+      "logCommits": true
+    },
+    "Ape.Module.MultiPeerTest": {
+      "author": true,
+      "intervalMilliseconds": 5000
+    }
+  }
+}

@@ -41,6 +41,20 @@ Start another joiner with the same file in another directory (each process needs
 
 Set `receipt` in `Ape.Module.MultiPeerTest` to a file path. The process rewrites that file with one `key revision` line per marker it can see. The automated test uses a separate file per peer.
 
+## Publication and mounts
+
+The author on port `19170` exports `markers/lamp` and `markers/crate` and holds `markers/orb`. The joiner dials `127.0.0.1:19170` and places the two exported markers under its own principal. The same files work against the Rust host on those ports. Start one author, then the joiner of either runtime.
+
+```bash
+dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
+  src/Ape.Examples/Ape.Example.MultiPeerTest/Config/publish-author/publish-author.json
+
+dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
+  src/Ape.Examples/Ape.Example.MultiPeerTest/Config/mount-joiner/mount-joiner.json
+```
+
+The joiner log names the mounted key and the source path, for example `MultiPeer /{principal}/shared/lamp revision 1 (markers/lamp)`. The orb line does not appear.
+
 ## Automated test
 
 From the skeleton root:

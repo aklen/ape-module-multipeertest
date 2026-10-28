@@ -100,10 +100,14 @@ public sealed class MultiPeerService : IPluggableService, IDeterministicFramePar
     {
         foreach (var marker in markers.OrderBy(marker => marker.Id, StringComparer.Ordinal))
         {
-            if (_seen.TryGetValue(marker.Id, out var seen) && seen == marker.Revision)
+            var source = marker.Id;
+            var key = _scene?.SceneKeyFor(marker.OwnerId, source) ?? source;
+            if (_seen.TryGetValue(key, out var seen) && seen == marker.Revision)
                 continue;
-            _seen[marker.Id] = marker.Revision;
-            _logger.LogInfo($"MultiPeer {marker.Id} revision {marker.Revision}");
+            _seen[key] = marker.Revision;
+            _logger.LogInfo(key == source
+                ? $"MultiPeer {key} revision {marker.Revision}"
+                : $"MultiPeer {key} revision {marker.Revision} ({source})");
         }
     }
 
