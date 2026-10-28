@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Ape.Core\Ape.Core.csproj" />
+    <ProjectReference Include="..\..\Ape.Modules\Ape.Module.DiscoveryManager\Ape.Module.DiscoveryManager.csproj" />
     <ProjectReference Include="Services\Ape.Module.MultiPeerTest.csproj" />
   </ItemGroup>
 

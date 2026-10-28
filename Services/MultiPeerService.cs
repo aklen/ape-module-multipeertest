@@ -30,6 +30,7 @@ public sealed class MultiPeerService : IPluggableService, IDeterministicFramePar
     private bool _announced;
     private int _revision;
     private DateTime _nextBumpUtc = DateTime.MaxValue;
+    private readonly Dictionary<string, int> _seen = new(StringComparer.Ordinal);
 
     public void Register(IServiceCollection serviceCollection)
     {
@@ -91,7 +92,19 @@ public sealed class MultiPeerService : IPluggableService, IDeterministicFramePar
             _logger.LogInfo($"MultiPeer revision {_revision}");
         }
 
+        LogRevisions(markers);
         WriteReceipt(markers);
+    }
+
+    private void LogRevisions(IReadOnlyList<MarkerEntity> markers)
+    {
+        foreach (var marker in markers.OrderBy(marker => marker.Id, StringComparer.Ordinal))
+        {
+            if (_seen.TryGetValue(marker.Id, out var seen) && seen == marker.Revision)
+                continue;
+            _seen[marker.Id] = marker.Revision;
+            _logger.LogInfo($"MultiPeer {marker.Id} revision {marker.Revision}");
+        }
     }
 
     private bool Due()

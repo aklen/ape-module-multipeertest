@@ -17,6 +17,22 @@ namespace Ape.Example.MultiPeerTest.Tests;
 [Collection("mesh")]
 public sealed class GrowingMeshTests
 {
+    [Fact]
+    public void Two_runs_write_the_scene_and_the_peers_in_the_same_order()
+    {
+        var first = CaptureOrder();
+        var second = CaptureOrder();
+
+        Assert.Equal(first.Commits, second.Commits);
+        Assert.True(Registers(first.Replica).SequenceEqual(FirstSends(first.AuthorReplica)),
+            "Author send order and joiner register order diverged."
+            + Environment.NewLine + "send:" + Environment.NewLine + string.Join(Environment.NewLine, first.AuthorReplica)
+            + Environment.NewLine + "register:" + Environment.NewLine + string.Join(Environment.NewLine, first.Replica));
+        Assert.Equal(first.Replica, second.Replica);
+        Assert.Equal(CommitKeys(first.Commits, "create-entity"), Registers(first.Replica));
+        Assert.Equal(RevisionCommits(first.Commits), RevisionUpdates(first.Replica));
+    }
+
     [Theory]
     [InlineData(2)]
     [InlineData(3)]
@@ -107,7 +123,155 @@ public sealed class GrowingMeshTests
         return seen;
     }
 
-    private static string WriteConfig(string root, int index, IReadOnlyList<int> ports, bool author, string receipt)
+    private (string[] Commits, string[] Replica, string[] AuthorReplica) CaptureOrder()
+    {
+        var hostDir = FindHostOutput();
+        var hostDll = Path.Combine(hostDir, "Ape.Example.MultiPeerTest.dll");
+        var root = Path.Combine(Path.GetTempPath(), "ape-order-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var ports = FreePorts(2);
+        var commits = Path.Combine(root, "author-commits.log");
+        var authorReplica = Path.Combine(root, "author-replica.log");
+        var replica = Path.Combine(root, "joiner-replica.log");
+        var running = new List<Running>();
+        try
+        {
+            var authorReceipt = Path.Combine(root, "peer-0.txt");
+            running.Add(Start(hostDir, hostDll, WriteConfig(root, 0, ports, author: true, authorReceipt, commits, authorReplica, 3000)));
+            if (!WaitFor(running[0], "MultiPeer markers ready", TimeSpan.FromSeconds(20)))
+                Assert.Fail("The author did not publish its markers." + Environment.NewLine + running[0].Output);
+
+            var joinerReceipt = Path.Combine(root, "peer-1.txt");
+            running.Add(Start(hostDir, hostDll, WriteConfig(root, 1, ports, author: false, joinerReceipt, null, replica, 3000)));
+            if (!WaitUntilSynced(joinerReceipt, TimeSpan.FromSeconds(20), running))
+                Assert.Fail("The joiner did not match the author's scene." + Environment.NewLine + running[1].Output);
+            if (!WaitForFile(commits, lines => lines.Any(line => line.Contains("\tset-entity\t", StringComparison.Ordinal)), TimeSpan.FromSeconds(5)))
+                Assert.Fail("The author commit journal did not record a revision." + Environment.NewLine + running[0].Output);
+            if (!WaitForFile(replica, lines => RevisionUpdates(lines).Length == MarkerCatalog.Keys.Length, TimeSpan.FromSeconds(10)))
+                Assert.Fail("The joiner replica journal did not record every revision." + Environment.NewLine + string.Join(Environment.NewLine, SafeRead(replica)));
+
+            return (File.ReadAllLines(commits), File.ReadAllLines(replica), File.ReadAllLines(authorReplica));
+        }
+        finally
+        {
+            foreach (var peer in running)
+                Stop(peer);
+            try { Directory.Delete(root, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    private static bool WaitForFile(string path, Func<string[], bool> ready, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (ready(SafeRead(path)))
+                return true;
+            Thread.Sleep(50);
+        }
+
+        return ready(SafeRead(path));
+    }
+
+    private static string[] SafeRead(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllLines(path) : [];
+        }
+        catch (IOException)
+        {
+            return [];
+        }
+    }
+
+    private static string[] CommitKeys(IEnumerable<string> lines, string kind)
+    {
+        var keyIndex = kind == "set-entity" ? 2 : 3;
+        var names = new List<string>();
+        foreach (var line in lines)
+        {
+            var parts = line.Split('\t');
+            if (parts.Length > keyIndex && parts[1] == kind)
+                names.Add(parts[keyIndex]);
+        }
+
+        return names.ToArray();
+    }
+
+    private static string[] FirstSends(IEnumerable<string> lines)
+    {
+        var seen = new List<string>();
+        foreach (var id in Sends(lines))
+        {
+            if (!seen.Contains(id))
+                seen.Add(id);
+        }
+
+        return seen.ToArray();
+    }
+
+    private static string[] Sends(IEnumerable<string> lines)
+    {
+        var names = new List<string>();
+        foreach (var line in lines)
+        {
+            var parts = line.Split('\t');
+            if (parts.Length >= 2 && parts[0] == "send")
+                names.Add(parts[1]);
+        }
+
+        return names.ToArray();
+    }
+
+    private static string[] Registers(IEnumerable<string> lines)
+    {
+        var names = new List<string>();
+        foreach (var line in lines)
+        {
+            var parts = line.Split('\t');
+            if (parts.Length >= 2 && parts[0] == "register")
+                names.Add(parts[1]);
+        }
+
+        return names.ToArray();
+    }
+
+    private static string[] RevisionCommits(IEnumerable<string> lines)
+    {
+        var names = new List<string>();
+        foreach (var line in lines)
+        {
+            var parts = line.Split('\t');
+            if (parts.Length >= 4 && parts[1] == "set-entity" && parts[3] == "Revision")
+                names.Add(parts[2]);
+        }
+
+        return names.ToArray();
+    }
+
+    private static string[] RevisionUpdates(IEnumerable<string> lines)
+    {
+        var names = new List<string>();
+        foreach (var line in lines)
+        {
+            var parts = line.Split('\t');
+            if (parts.Length >= 3 && parts[0] == "update" && parts[2] == "Revision")
+                names.Add(parts[1]);
+        }
+
+        return names.ToArray();
+    }
+
+    private static string WriteConfig(
+        string root,
+        int index,
+        IReadOnlyList<int> ports,
+        bool author,
+        string receipt,
+        string? commitJournal = null,
+        string? replicaJournal = null,
+        int intervalMilliseconds = 200)
     {
         var directory = Path.Combine(root, $"peer-{index}");
         Directory.CreateDirectory(directory);
@@ -116,8 +280,14 @@ public sealed class GrowingMeshTests
         {
             if (peers.Length > 0)
                 peers.AppendLine(",");
-            peers.Append("        { \"host\": \"localhost\", \"port\": ").Append(ports[earlier].ToString(CultureInfo.InvariantCulture)).Append(" }");
+            peers.Append("        { \"host\": \"127.0.0.1\", \"port\": ").Append(ports[earlier].ToString(CultureInfo.InvariantCulture)).Append(" }");
         }
+
+        var scene = new StringBuilder("\"logCommits\": true");
+        if (commitJournal != null)
+            scene.Append(", \"commitJournalPath\": ").Append(JsonString(commitJournal));
+        if (replicaJournal != null)
+            scene.Append(", \"replicaJournalPath\": ").Append(JsonString(replicaJournal));
 
         var json = $$"""
         {
@@ -135,10 +305,10 @@ public sealed class GrowingMeshTests
         {{peers}}
               ]
             },
-            "Ape.Core.Scene": { "logCommits": true },
+            "Ape.Core.Scene": { {{scene}} },
             "Ape.Module.MultiPeerTest": {
               "author": {{(author ? "true" : "false")}},
-              "intervalMilliseconds": 200,
+              "intervalMilliseconds": {{intervalMilliseconds}},
               "maxRevision": 1,
               "receipt": {{JsonString(receipt)}}
             }

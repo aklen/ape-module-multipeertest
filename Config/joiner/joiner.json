@@ -10,12 +10,13 @@
       "transport": "quic",
       "role": "peer",
       "peerName": "joiner",
-      "port": 19161,
+      "port": 0,
       "keepAliveSeconds": 15,
-      "reconnect": { "initialSeconds": 1, "maxSeconds": 8 },
-      "peers": [
-        { "host": "localhost", "port": 19160 }
-      ]
+      "reconnect": { "initialSeconds": 1, "maxSeconds": 8 }
+    },
+    "Ape.Module.DiscoveryManager": {
+      "connect": { "enabled": true },
+      "ssdp": { "vpnUnicastProbe": { "enabled": false } }
     },
     "Ape.Core.Scene": {
       "logCommits": true

@@ -1,6 +1,6 @@
 # Multi-peer scene sync
 
-The author owns three scene objects: `markers/lamp`, `markers/crate`, and `markers/orb`. It sets their revision to 0, then increments it on an interval (five seconds in the sample). A joiner does not create objects. It dials the peers listed in its config and reads the same entities from its own scene.
+The author owns three scene objects: `markers/lamp`, `markers/crate`, and `markers/orb`. It sets their revision to 0, then increments it on an interval (five seconds in the sample). A joiner does not create objects. Peers find each other over SSDP and read the same entities from their own scene.
 
 Each process needs its own configuration directory. Ape opens one profile lock for the directory that contains the JSON file.
 
@@ -8,14 +8,14 @@ Each process needs its own configuration directory. Ape opens one profile lock f
 
 | Path | Role |
 | --- | --- |
-| `Config/author/author.json` | Peer on port `19160`. Authors the three markers every 5 seconds. |
-| `Config/joiner/joiner.json` | Peer on port `19161`. Dials the author and only receives the scene. |
+| `Config/author/author.json` | Peer with `port: 0`. Authors the three markers every 5 seconds. |
+| `Config/joiner/joiner.json` | Same shape, `author: false`. Start as many copies as you want. |
 | `SceneEntities` | The replicated marker and its scene key. |
 | `Services` | Loads with the module, before the network starts, and bumps the markers on the author. |
 | `Common` | Reads the module section from the host JSON. |
 | `Tests` | Grows a localhost mesh through 2, 3, 4, and 8 peers. |
 
-A new peer dials every peer that is already running, so the links are a mesh rather than a single chain. Replication reaches the peers the author is connected to directly.
+Each process binds an ephemeral QUIC port and advertises it. The greater principal id dials, so a pair keeps one session. A fixed `peers` entry (`host`, `host` plus `port`, or `match`) still dials that address. `accept` limits who may connect inbound. Replication reaches only the peers this process is connected to.
 
 ## Run two processes
 
@@ -35,7 +35,7 @@ dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
 
 The joiner log shows `MultiPeer joiner`. After the QUIC connection, its scene commit log shows the three markers. The author log shows `MultiPeer revision 1`, then `2`, and so on. The joiner's scene follows those revisions.
 
-A later machine uses the same joiner shape: `author` is false, `role` is `peer`, and `peers` lists the hosts it should dial. Use `localhost` on one machine. The development certificate includes that name.
+Start another joiner with the same file in another directory (each process needs its own profile lock). On one machine the advertisement is the LAN address, so dial `127.0.0.1` only in a fixed `peers` list. `localhost` makes MsQuic try IPv6 first and fail.
 
 ## Receipt file
 

@@ -10,9 +10,13 @@
       "transport": "quic",
       "role": "peer",
       "peerName": "author",
-      "port": 19160,
+      "port": 0,
       "keepAliveSeconds": 15,
       "reconnect": { "initialSeconds": 1, "maxSeconds": 8 }
+    },
+    "Ape.Module.DiscoveryManager": {
+      "connect": { "enabled": true },
+      "ssdp": { "vpnUnicastProbe": { "enabled": false } }
     },
     "Ape.Core.Scene": {
       "logCommits": true
