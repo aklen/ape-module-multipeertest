@@ -11,7 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Ape.Core\Ape.Core.csproj">
+    <Compile Include="..\SceneEntities\**\*.cs" />
+    <Compile Include="..\Common\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Ape.Core\Ape.Core.csproj">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>
@@ -19,12 +24,6 @@
 
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="3.1.11" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Program.cs" />
-    <Compile Remove="Tests/**" />
-    <None Remove="Tests/**" />
   </ItemGroup>
 
 </Project>
