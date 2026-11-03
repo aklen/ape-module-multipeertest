@@ -8,3 +8,9 @@ Git checkout lives at `src/Ape.Modules/Ape.Module.MultiPeerTest/`. It retains th
 history of the former MultiPeerTest example. No separate example executable is needed.
 
 See [Docs/README.md](Docs/README.md) for sample configurations and integration tests.
+
+## License
+
+Copyright (c) 2026 [Akos Hamori](https://github.com/aklen).
+
+Licensed under the [Mozilla Public License 2.0 (MPL-2.0)](https://www.mozilla.org/MPL/2.0/).
