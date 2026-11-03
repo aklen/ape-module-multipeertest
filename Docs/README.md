@@ -4,12 +4,16 @@ The author owns three scene objects: `markers/lamp`, `markers/crate`, and `marke
 
 Each process needs its own configuration directory. Ape opens one profile lock for the directory that contains the JSON file.
 
+The module is a library discovered by the Launcher workspace build. Its service is
+activated by the `Ape.Module.MultiPeerTest` section in the selected JSON. There is
+no module-specific `Program.cs`.
+
 ## Layout
 
 | Path | Role |
 | --- | --- |
-| `Config/author/author.json` | Peer with `port: 0`. Authors the three markers every 5 seconds. |
-| `Config/joiner/joiner.json` | Same shape, `author: false`. Start as many copies as you want. |
+| `Samples/author/author.json` | Peer with `port: 0`. Authors the three markers every 5 seconds. |
+| `Samples/joiner/joiner.json` | Same shape, `author: false`. Start as many copies as you want. |
 | `SceneEntities` | The replicated marker and its scene key. |
 | `Services` | Loads with the module, before the network starts, and bumps the markers on the author. |
 | `Common` | Reads the module section from the host JSON. |
@@ -22,15 +26,15 @@ Each process binds an ephemeral QUIC port and advertises it. The greater princip
 From the skeleton root, start the author:
 
 ```bash
-dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
-  src/Ape.Examples/Ape.Example.MultiPeerTest/Config/author/author.json
+dotnet run --project src/Ape.Launcher -- \
+  src/Ape.Modules/Ape.Module.MultiPeerTest/Samples/author/author.json
 ```
 
 Wait until the log contains `MultiPeer markers ready`. Then start the joiner:
 
 ```bash
-dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
-  src/Ape.Examples/Ape.Example.MultiPeerTest/Config/joiner/joiner.json
+dotnet run --project src/Ape.Launcher -- \
+  src/Ape.Modules/Ape.Module.MultiPeerTest/Samples/joiner/joiner.json
 ```
 
 The joiner log shows `MultiPeer joiner`. After the QUIC connection, its scene commit log shows the three markers. The author log shows `MultiPeer revision 1`, then `2`, and so on. The joiner's scene follows those revisions.
@@ -46,11 +50,11 @@ Set `receipt` in `Ape.Module.MultiPeerTest` to a file path. The process rewrites
 The author on port `19170` exports `markers/lamp` and `markers/crate` and holds `markers/orb`. The joiner dials `127.0.0.1:19170` and places the two exported markers under its own principal. The same files work against the Rust host on those ports. Start one author, then the joiner of either runtime.
 
 ```bash
-dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
-  src/Ape.Examples/Ape.Example.MultiPeerTest/Config/publish-author/publish-author.json
+dotnet run --project src/Ape.Launcher -- \
+  src/Ape.Modules/Ape.Module.MultiPeerTest/Samples/publish-author/publish-author.json
 
-dotnet run --project src/Ape.Examples/Ape.Example.MultiPeerTest -- \
-  src/Ape.Examples/Ape.Example.MultiPeerTest/Config/mount-joiner/mount-joiner.json
+dotnet run --project src/Ape.Launcher -- \
+  src/Ape.Modules/Ape.Module.MultiPeerTest/Samples/mount-joiner/mount-joiner.json
 ```
 
 The joiner log names the mounted key and the source path, for example `MultiPeer /{principal}/shared/lamp revision 1 (markers/lamp)`. The orb line does not appear.
@@ -63,7 +67,23 @@ From the skeleton root:
 dotnet test \
   --tl:off \
   -clp:ErrorsOnly \
-  src/Ape.Examples/Ape.Example.MultiPeerTest/Tests/Ape.Example.MultiPeerTest.Tests.csproj
+  src/Ape.Modules/Ape.Module.MultiPeerTest/Tests/Ape.Module.MultiPeerTest.Tests.csproj
 ```
 
-The test starts the author, waits for the markers, then adds peers one at a time. Each joiner must observe revision 1 on all three objects before the next peer starts. The test interval is 200 milliseconds and the author stops at revision 1.
+The test project builds the Launcher (including the checked-out modules) and starts
+`Ape.Launcher.dll` for each peer. The test starts the author, waits for the markers, then adds peers one at a time. Each joiner must observe revision 1 on all three objects before the next peer starts. The test interval is 200 milliseconds and the author stops at revision 1.
+
+## Native QUIC dependency
+
+The mesh tests require a supported native MsQuic library. A successful build alone
+is not a network-runtime check. On macOS, if MsQuic is installed by Homebrew but
+.NET reports that QUIC is unsupported, make that library visible for this command:
+
+```bash
+DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib" dotnet test -c Release \
+  src/Ape.Modules/Ape.Module.MultiPeerTest/Tests/Ape.Module.MultiPeerTest.Tests.csproj
+```
+
+The same environment applies when launching the QUIC samples. The
+`Launcher_loads_module_from_config_without_network` test separately verifies module
+activation and marker publication without requiring QUIC.

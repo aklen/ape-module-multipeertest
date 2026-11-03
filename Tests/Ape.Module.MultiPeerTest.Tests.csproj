@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ape.Example.MultiPeerTest.csproj" />
+    <ProjectReference Include="..\Ape.Module.MultiPeerTest.csproj" />
+    <ProjectReference Include="..\..\..\Ape.Launcher\Ape.Launcher.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

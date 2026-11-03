@@ -6,7 +6,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using Ape.Module.MultiPeerTest;
 
-namespace Ape.Example.MultiPeerTest.Tests;
+namespace Ape.Module.MultiPeerTest.Tests;
 
 /// <summary>
 /// Starts one author, then adds peers one at a time. Each new peer dials every peer already running.
@@ -17,6 +17,40 @@ namespace Ape.Example.MultiPeerTest.Tests;
 [Collection("mesh")]
 public sealed class GrowingMeshTests
 {
+    [Fact]
+    public void Launcher_loads_module_from_config_without_network()
+    {
+        var hostDir = FindHostOutput();
+        var root = Path.Combine(Path.GetTempPath(), "ape-module-launcher-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var receipt = Path.Combine(root, "receipt.txt");
+        Running? running = null;
+        try
+        {
+            var config = Path.Combine(root, "peer.json");
+            File.WriteAllText(config, $$"""
+            {
+              "modules": {
+                "Ape.Core.Logging": { "enabled": true, "level": "info", "transport": "console" },
+                "Ape.Core.Network": { "enabled": false },
+                "Ape.Module.MultiPeerTest": {
+                  "author": true, "intervalMilliseconds": 50, "maxRevision": 1,
+                  "receipt": {{JsonString(receipt)}}
+                }
+              }
+            }
+            """);
+            running = Start(hostDir, Path.Combine(hostDir, "Ape.Launcher.dll"), config);
+            Assert.True(WaitUntilSynced(receipt, TimeSpan.FromSeconds(20), [running]),
+                "Launcher did not activate the configured module." + Environment.NewLine + running.Output);
+        }
+        finally
+        {
+            if (running != null) Stop(running);
+            try { Directory.Delete(root, recursive: true); } catch (IOException) { }
+        }
+    }
+
     [Fact]
     public void Two_runs_write_the_scene_and_the_peers_in_the_same_order()
     {
@@ -41,7 +75,7 @@ public sealed class GrowingMeshTests
     public void Joiners_see_the_authors_markers(int peers)
     {
         var hostDir = FindHostOutput();
-        var hostDll = Path.Combine(hostDir, "Ape.Example.MultiPeerTest.dll");
+        var hostDll = Path.Combine(hostDir, "Ape.Launcher.dll");
         Assert.True(File.Exists(hostDll), hostDll);
         Assert.True(File.Exists(Path.Combine(hostDir, "Ape.Module.MultiPeerTest.dll")));
 
@@ -126,7 +160,7 @@ public sealed class GrowingMeshTests
     private (string[] Commits, string[] Replica, string[] AuthorReplica) CaptureOrder()
     {
         var hostDir = FindHostOutput();
-        var hostDll = Path.Combine(hostDir, "Ape.Example.MultiPeerTest.dll");
+        var hostDll = Path.Combine(hostDir, "Ape.Launcher.dll");
         var root = Path.Combine(Path.GetTempPath(), "ape-order-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var ports = FreePorts(2);
@@ -349,19 +383,19 @@ public sealed class GrowingMeshTests
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            foreach (var configuration in new[] { "", "Debug", "Release" })
-            {
-                var candidate = string.IsNullOrEmpty(configuration)
-                    ? Path.Combine(dir.FullName, "bin", "Ape.Example.MultiPeerTest", "net10.0")
-                    : Path.Combine(dir.FullName, "bin", "Ape.Example.MultiPeerTest", configuration, "net10.0");
-                if (File.Exists(Path.Combine(candidate, "Ape.Example.MultiPeerTest.dll")))
-                    return candidate;
-            }
+#if DEBUG
+            const string configuration = "Debug";
+#else
+            const string configuration = "Release";
+#endif
+            var candidate = Path.Combine(dir.FullName, "bin", "Ape.Launcher", configuration, "net10.0");
+            if (File.Exists(Path.Combine(candidate, "Ape.Launcher.dll")))
+                return candidate;
 
             dir = dir.Parent;
         }
 
-        throw new InvalidOperationException("Host output was not found next to the test build.");
+        throw new InvalidOperationException("Launcher output was not found next to the test build.");
     }
 
     private static bool WaitFor(Running running, string line, TimeSpan timeout)
